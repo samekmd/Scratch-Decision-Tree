@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from model import FitPrediction
 from splitter import BestSplitter
+from exceptions import NumberOfFeaturesOutOfRange
+from sklearn.base import BaseEstimator, ClassifierMixin
 
 TREE_CLF_CRITERION = {
         'entropy': Entropy,
@@ -12,7 +14,7 @@ TREE_CLF_CRITERION = {
 }
 
 
-class DecisionTree(FitPrediction):
+class DecisionTree(FitPrediction,  BaseEstimator, ClassifierMixin):
     """
     Classe que cria uma árvore de decisão de classificação
     
@@ -32,7 +34,7 @@ class DecisionTree(FitPrediction):
                  max_depth = 10, 
                  min_samples_split = 100, 
                  random_state = 0,
-                 n_features = 10
+                 n_features = None
                  ):
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
@@ -50,7 +52,10 @@ class DecisionTree(FitPrediction):
         Parâmetros:
             - X -> Amostras
             - y -> Variável alvo
-        """
+        """ 
+        if self.n_features is not None and self.n_features > X.shape[1]:
+            raise NumberOfFeaturesOutOfRange(f'A quantidade de features passada é maior que a presente no conjunto de dados')
+        
         self.root = self._grow_tree(X,y)
         
     def _grow_tree(self, X,y, depth=0):
@@ -66,7 +71,10 @@ class DecisionTree(FitPrediction):
         np.random.seed(self.random_state) # Definindo semente de aleatorieadade
         
         n_samples, n_feats = X.shape # Obtendo número de amostras e features dos dados
-        n_labels = len(np.unique(y))  # Obtendo número de classes           
+        n_labels = len(np.unique(y))  # Obtendo número de classes    
+        
+        if self.n_features is None:
+            self.n_features = n_feats
         
         # Selecionando randomicamente features para construção da árvore (evita overfitting )
         selected_features = np.random.choice(n_feats, self.n_features, replace=False) 
